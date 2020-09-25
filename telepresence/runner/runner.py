@@ -26,10 +26,11 @@ from functools import partial
 from inspect import currentframe, getframeinfo
 from pathlib import Path
 from shutil import rmtree, which
-from subprocess import STDOUT, CalledProcessError, Popen, TimeoutExpired
+from subprocess import run, STDOUT, CalledProcessError, Popen, TimeoutExpired
 from tempfile import mkdtemp
 from threading import Thread
 from time import sleep, time
+from urllib.parse import urlparse
 
 from telepresence import TELEPRESENCE_BINARY
 from telepresence.utilities import kill_process, str_command
@@ -291,6 +292,15 @@ class Runner:
         # roundabout way elsewhere. Consider using `docker context inspect` to
         # do all of this stuff in a way that may be supported.
         dsock = "/var/run/docker.sock"
+
+        inspect_cmd = "docker context inspect"
+        inspect_cmd += " --format '{{ index .Endpoints.docker.Host }}'"
+        inspect_process = run(inspect_cmd, shell=True, capture_output=True)
+        if inspect_process.returncode == 0:
+            docker_url = urlparse(inspect_process.stdout)
+            if docker_url.scheme == 'unix':
+                dsock = str(docker_url.path)
+
         if os.path.exists(dsock) and not os.access(dsock, os.W_OK):
             self.require_sudo()
             self.sudo_for_docker = True
