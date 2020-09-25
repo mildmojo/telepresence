@@ -1,0 +1,2 @@
+Detects rootless docker without `sudo` by extracting the docker socket file
+path from `docker context inspect` rather than strictly hardcoding it.
